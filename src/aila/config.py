@@ -4,9 +4,10 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 
-# Resolve the project root from this file (src/config.py -> project root),
+# Resolve the project root from this file (src/aila/config.py -> project root),
 # so the .env file is found no matter which directory Python is started from.
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+# parents[0] = src/aila, parents[1] = src, parents[2] = project root.
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 load_dotenv(
     PROJECT_ROOT / ".env"
