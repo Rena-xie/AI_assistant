@@ -1,14 +1,14 @@
-def run_agent(agent, message):
+def run_agent(agent,message):
 
     result = agent.invoke(
         {
             "messages":[
                 {
-                 "role":"user",
-                 "content":message
+                    "role":"user",
+                    "content":message
                 }
             ]
         }
     )
 
-    return result
+    return result["messages"][-1]
