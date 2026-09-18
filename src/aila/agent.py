@@ -7,6 +7,8 @@ from .config import (
     MODEL_NAME
 )
 
+from .prompts.loader import load_system_prompt
+
 from .tools import calculator
 
 
@@ -19,11 +21,15 @@ def create_agent():
         temperature=0.7
     )
 
+    # System prompt is data: it lives in prompts/system.md.
+    system_prompt = load_system_prompt()
+
     agent = create_react_agent(
         llm,
         tools=[
             calculator
-        ]
+        ],
+        prompt=system_prompt
     )
 
     return agent
