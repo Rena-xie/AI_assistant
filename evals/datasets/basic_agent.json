@@ -1,0 +1,40 @@
+[
+  {
+    "id": "basic_001",
+    "question": "你好",
+    "checks": {
+      "response_non_empty": true
+    }
+  },
+  {
+    "id": "tool_001",
+    "question": "123*456是多少？",
+    "checks": {
+      "response_contains": ["56088"],
+      "tool_called": "calculator"
+    }
+  },
+  {
+    "id": "tool_002",
+    "question": "25*4+10是多少？",
+    "checks": {
+      "response_contains": ["110"],
+      "tool_called": "calculator"
+    }
+  },
+  {
+    "id": "routing_001",
+    "question": "什么是Python？",
+    "checks": {
+      "response_non_empty": true,
+      "tool_not_called": "calculator"
+    }
+  },
+  {
+    "id": "basic_002",
+    "question": "你能做什么？",
+    "checks": {
+      "response_non_empty": true
+    }
+  }
+]   
