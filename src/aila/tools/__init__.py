@@ -1,5 +1,8 @@
 from .calculator import calculator
+from .knowledge_search import knowledge_search
 
-__all__ = [
-    "calculator"
+
+TOOLS = [
+    calculator,
+    knowledge_search
 ]

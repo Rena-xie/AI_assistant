@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -8,7 +9,8 @@ from aila.agent import create_agent
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-DATASET_PATH = PROJECT_ROOT / "evals" / "datasets" / "basic_agent.json"
+DATASETS_DIR = PROJECT_ROOT / "evals" / "datasets"
+DEFAULT_DATASET = "basic"
 
 
 def load_dataset(path: Path) -> list[dict[str, Any]]:
@@ -129,8 +131,24 @@ def evaluate_case(
     return passed, failures
 
 
+def resolve_dataset_path() -> Path:
+    """Resolve dataset path from command-line argument."""
+    name = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_DATASET
+    path = DATASETS_DIR / f"{name}_agent.json"
+
+    if not path.exists():
+        raise FileNotFoundError(
+            f"Dataset not found: {path}"
+        )
+
+    return path
+
+
 def main() -> None:
-    dataset = load_dataset(DATASET_PATH)
+    dataset_path = resolve_dataset_path()
+    print(f"Dataset: {dataset_path.name}")
+
+    dataset = load_dataset(dataset_path)
 
     agent = create_agent()
 

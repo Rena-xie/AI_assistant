@@ -1,0 +1,20 @@
+[
+  {
+    "id": "rag_001",
+    "question": "LangGraph中的StateGraph是什么？",
+    "checks": {
+      "response_non_empty": true,
+      "response_contains": ["StateGraph", "node", "edge"],
+      "tool_called": "knowledge_search"
+    }
+  },
+  {
+    "id": "rag_002",
+    "question": "LangGraph如何保存状态？",
+    "checks": {
+      "response_non_empty": true,
+      "response_contains": ["checkpoint"],
+      "tool_called": "knowledge_search"
+    }
+  }
+]
