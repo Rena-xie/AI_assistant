@@ -1,0 +1,26 @@
+[
+  {
+    "id": "tool_001",
+    "question": "123*456是多少？",
+    "expected_tool": "calculator",
+    "response_contains": ["56088"]
+  },
+  {
+    "id": "tool_002",
+    "question": "Python中的tuple为什么不可变？",
+    "expected_tool": "knowledge_search",
+    "note": "该问题被 router 判为 knowledge，走 RAG 分支：RAG chain 内部直接调用 knowledge_search，不会产生 messages.tool_calls，因此评估以 route 作为工具使用证据"
+  },
+  {
+    "id": "tool_003",
+    "question": "25*4+10是多少？",
+    "expected_tool": "calculator",
+    "response_contains": ["110"]
+  },
+  {
+    "id": "tool_004",
+    "question": "请使用网页搜索功能查询今天全国主要城市的空气质量情况。",
+    "expected_tool": "web_search",
+    "note": "该问题不含知识库关键词，被 router 判为 chat，由 react agent 自主决定调用 web_search 获取实时信息"
+  }
+]

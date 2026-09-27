@@ -1,0 +1,20 @@
+[
+  {
+    "id": "rag_001",
+    "question": "Python中的tuple为什么不可变？",
+    "expected_keywords": ["不可变", "安全"],
+    "note": "学习笔记原文：『因为 tuple 不可变，所以代码更安全』（数据类型与变量.md 第156行）"
+  },
+  {
+    "id": "rag_002",
+    "question": "Python中的变量本质是什么？",
+    "expected_keywords": ["变量", "内存"],
+    "note": "学习笔记原文：『变量只是指向内存中对象的指针/标记』（数据类型与变量.md 第15行）"
+  },
+  {
+    "id": "rag_003",
+    "question": "Python字符串和bytes有什么区别？",
+    "expected_keywords": ["str", "bytes"],
+    "note": "学习笔记中 str 与 bytes 的相互转换用 encode/decode 描述（数据类型与变量.md 第87-91行）"
+  }
+]

@@ -1,28 +1,22 @@
-from aila.knowledge.loader import load_markdown_documents
-from aila.knowledge.splitter import split_documents
-from aila.knowledge.vectorstore import create_vectorstore
+"""Rebuild the knowledge base through the ingestion pipeline.
+
+Kept as a thin wrapper so the documented command keeps working::
+
+    python scripts/build_knowledge.py
+
+The pipeline runs load -> clean -> split -> embed -> store against
+``knowledge/documents/`` and persists to ``knowledge/vectorstore/``.
+"""
+
+from aila.knowledge.ingestion.pipeline import build_knowledge_base
 
 
-def main():
+def main() -> None:
+    print("Building knowledge base (load -> clean -> split -> embed -> store)...")
 
-    print("Loading documents...")
+    chunk_count = build_knowledge_base()
 
-    docs = load_markdown_documents()
-
-    print("documents:", len(docs))
-
-
-    print("Splitting...")
-
-    chunks = split_documents(docs)
-
-    print("chunks:", len(chunks))
-
-
-    print("Building vectorstore...")
-
-    create_vectorstore(chunks)
-
+    print(f"chunks: {chunk_count}")
     print("Done.")
 
 

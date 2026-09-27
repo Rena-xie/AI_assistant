@@ -23,3 +23,8 @@ MODEL_NAME = os.getenv(
 DASHSCOPE_API_KEY = os.getenv(
     "DASHSCOPE_API_KEY"
 )
+
+# Web search tool backend: "bing" (default), "duckduckgo" or "mock" (offline).
+WEB_SEARCH_BACKEND = os.getenv(
+    "WEB_SEARCH_BACKEND"
+)
