@@ -9,6 +9,7 @@ directly here; every user message goes through `run_agent()`.
 """
 
 from .agent import create_agent
+from .memory import DEFAULT_THREAD_ID
 from .runtime.runner import run_agent
 
 
@@ -27,9 +28,13 @@ def main():
         if user_input == "exit":
             break
 
+        # Every turn uses the same ``thread_id``, i.e. the same single chat
+        # window, so the assistant remembers the conversation across turns.
+        # It is NOT a user id — this assistant is single-user.
         response = run_agent(
             agent,
-            user_input
+            user_input,
+            thread_id=DEFAULT_THREAD_ID
         )
 
         print(

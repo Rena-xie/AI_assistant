@@ -1,0 +1,7 @@
+# Normalize line endings: store LF in the repo, check out LF in the working tree.
+# Prevents CRLF/LF conversion warnings on Windows (core.autocrlf=true).
+* text=auto eol=lf
+
+# Known binary artifacts (Chroma vectorstore) — never touch line endings.
+*.bin binary
+*.sqlite3 binary

@@ -23,9 +23,16 @@ Current stage:
 
 LLM + Agent framework
 
+Implemented:
+
+- Routing between chat and knowledge paths (`src/aila/graph/`)
+- RAG knowledge retrieval (`src/aila/knowledge/`, `src/aila/rag/`)
+- Short-term conversation memory (`src/aila/memory/`)
+- Evaluation (`evals/`)
+
 Future:
 
-RAG + Memory + MCP + Evaluation
+MCP + long-term memory
 
 
 ## Tech Stack
@@ -66,3 +73,8 @@ python src/main.py
 ```
 
 Type `exit` to quit the chat loop.
+
+The assistant remembers the conversation while the process runs (LangGraph
+`MemorySaver` checkpointer, one `thread_id` per chat window), so follow-up
+questions keep their context. Restarting the assistant starts a new
+conversation.

@@ -36,5 +36,10 @@
     "checks": {
       "response_non_empty": true
     }
+  },
+  {
+    "id": "rag_001",
+    "question": "LangGraph中的StateGraph是什么？",
+    "type": "rag"
   }
 ]   

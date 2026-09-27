@@ -1,0 +1,28 @@
+[
+  {
+    "id": "retrieval_001",
+    "question": "Python中的变量本质是什么？",
+    "expected_keywords": ["变量", "内存", "引用"]
+  },
+  {
+    "id": "retrieval_002",
+    "question": "Python字符串和bytes有什么区别？",
+    "expected_keywords": ["str", "bytes", "encode", "decode"]
+  },
+  {
+    "id": "retrieval_003",
+    "question": "为什么tuple不可变？",
+    "expected_keywords": ["tuple", "不可变", "安全"]
+  },
+  {
+    "id": "retrieval_004",
+    "question": "AI开发中List有哪些应用场景？",
+    "expected_keywords": ["list", "对话历史", "RAG", "chunk"],
+    "note": "原始需求写的是『消息历史』，但学习笔记中该概念表述为『对话历史』（knowledge/learning_notes/数据类型与变量.md 第118、120行）"
+  },
+  {
+    "id": "retrieval_005",
+    "question": "dict为什么适合保存LLM API返回的数据？",
+    "expected_keywords": ["dict", "key-value", "JSON"]
+  }
+]

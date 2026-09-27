@@ -74,9 +74,19 @@ def evaluate_case(
     """
     question = case.get("question", "")
     checks = case.get("checks", {})
+    case_id = case.get("id", "unknown")
 
     if not question:
         return False, ["question is empty"]
+
+    # The graph now has a checkpointer, so every call must carry a thread_id.
+    # Each case gets its OWN thread: otherwise the answer of an earlier case
+    # leaks into the next one and the eval stops being reproducible.
+    config = {
+        "configurable": {
+            "thread_id": f"eval_{case_id}"
+        }
+    }
 
     result = agent.invoke(
         {
@@ -86,7 +96,8 @@ def evaluate_case(
                     "content": question,
                 }
             ]
-        }
+        },
+        config=config
     )
 
     final_response = extract_final_response(result)
