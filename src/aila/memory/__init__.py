@@ -6,6 +6,7 @@ placeholder store is used.
 """
 
 from .checkpoint import DEFAULT_THREAD_ID, close_checkpointer, create_checkpointer, get_checkpointer, open_checkpointer
+from .learning import LearningService
 from .repository import ConversationRepository, MemoryRepository
 from .service import MemoryService
 
@@ -19,4 +20,5 @@ __all__ = [
     "ConversationRepository",
     "MemoryRepository",
     "MemoryService",
+    "LearningService",
 ]

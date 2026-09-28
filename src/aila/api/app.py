@@ -224,20 +224,22 @@ def create_app() -> FastAPI:
     async def chat(request: ChatRequest) -> ChatResponse:
         user_id = _normalize_user_id(request.user_id)
         thread_id = _normalize_thread_id(request.thread_id)
-        config = {"configurable": {"thread_id": thread_id, "user_id": user_id}}
 
         try:
             memory_context = await app.state.memory_service.build_memory_context(user_id)
         except Exception:
             memory_context = ""
 
-        if memory_context:
-            prompt = f"用户长期学习状态:\n{memory_context}\n\n用户当前问题:\n{request.message}"
-        else:
-            prompt = request.message
+        config = {
+            "configurable": {
+                "thread_id": thread_id,
+                "user_id": user_id,
+                "learning_context": memory_context,
+            }
+        }
 
         result = app.state.agent.invoke(
-            {"messages": [HumanMessage(content=prompt)]},
+            {"messages": [HumanMessage(content=request.message)]},
             config=config,
         )
 
@@ -249,7 +251,6 @@ def create_app() -> FastAPI:
     async def stream_chat(request: ChatRequest):
         user_id = _normalize_user_id(request.user_id)
         thread_id = _normalize_thread_id(request.thread_id)
-        config = {"configurable": {"thread_id": thread_id, "user_id": user_id}}
         seen_sources = set()
 
         try:
@@ -257,17 +258,20 @@ def create_app() -> FastAPI:
         except Exception:
             memory_context = ""
 
-        if memory_context:
-            stream_prompt = f"用户长期学习状态:\n{memory_context}\n\n用户当前问题:\n{request.message}"
-        else:
-            stream_prompt = request.message
+        config = {
+            "configurable": {
+                "thread_id": thread_id,
+                "user_id": user_id,
+                "learning_context": memory_context,
+            }
+        }
 
         async def event_generator():
             nonlocal seen_sources
             try:
                 await app.state.repository.update_conversation(user_id, thread_id, request.message)
                 async for message_chunk, _metadata in app.state.agent.astream(
-                    {"messages": [HumanMessage(content=stream_prompt)]},
+                    {"messages": [HumanMessage(content=request.message)]},
                     config=config,
                     stream_mode="messages",
                 ):

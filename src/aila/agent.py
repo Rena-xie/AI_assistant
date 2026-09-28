@@ -10,6 +10,7 @@ from .config import (
     MODEL_NAME
 )
 
+from .prompts.loader import build_runtime_system_prompt
 from .tools import TOOLS
 from .graph.router import route_question
 from .rag import create_rag_chain
@@ -46,10 +47,24 @@ def create_agent(checkpointer=None):
         temperature=0.7
     )
 
-    # Inner react agent — unchanged, owns all tool-calling logic.
+    def runtime_prompt(_state=None, config=None):
+        """Bind the governance prompt to the active runtime config.
+
+        The learner memory is injected through LangGraph config rather than
+        disguised as user text, so the model sees it as system/runtime context.
+        """
+        learning_context = ""
+        if isinstance(config, dict):
+            configurable = config.get("configurable") or {}
+            learning_context = configurable.get("learning_context", "")
+        return build_runtime_system_prompt(learning_context)
+
+    # Inner react agent — unchanged tool-calling logic, but now using a real
+    # system/runtime prompt instead of unstructured user-message concatenation.
     react_agent = create_react_agent(
         llm,
-        tools=TOOLS
+        tools=TOOLS,
+        prompt=runtime_prompt,
     )
 
     # RAG chain — retrieval + grounded generation for knowledge questions.
@@ -69,9 +84,9 @@ def create_agent(checkpointer=None):
         answer = rag_chain.invoke(question)
         return {"messages": [AIMessage(content=answer)]}
 
-    def agent_node(state):
+    def agent_node(state, config):
         """Chat path: delegate to the inner react agent."""
-        result = react_agent.invoke(state)
+        result = react_agent.invoke(state, config=config)
         return {"messages": result["messages"]}
 
     builder.add_node("router", router_node)
