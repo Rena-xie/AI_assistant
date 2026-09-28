@@ -4,6 +4,11 @@ from dotenv import load_dotenv
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DATA_DIR = (PROJECT_ROOT / "data").resolve()
+CHECKPOINT_DB_PATH = (PROJECT_ROOT / "data" / "checkpoints.sqlite").resolve()
+MEMORY_DB_PATH = (PROJECT_ROOT / "data" / "memory.sqlite").resolve()
+
+DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 load_dotenv(PROJECT_ROOT / ".env")
 

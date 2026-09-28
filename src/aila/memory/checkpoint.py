@@ -1,24 +1,44 @@
-"""LangGraph checkpointer = the assistant's short-term memory.
+"""Persistent LangGraph checkpoint lifecycle.
 
-Stage 1 uses the official ``MemorySaver`` checkpointer, so checkpoints live
-in process memory only: the conversation survives as long as the process runs
-and is gone after a restart. This is exactly the behavior wanted for a
-single chat window and does not introduce any database or long-term memory.
+This phase uses the SQLite-backed async LangGraph checkpointer only. The
+thread checkpoint state is persisted in the database, while user/thread
+metadata is stored in a separate app-level repository.
 """
 
-from langgraph.checkpoint.memory import MemorySaver
+from pathlib import Path
+
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+
+from ..config import CHECKPOINT_DB_PATH
 
 
-# One chat window for this personal assistant.
-# A thread_id identifies a conversation, not a user.
 DEFAULT_THREAD_ID = "default"
 
 
-def create_checkpointer() -> MemorySaver:
-    """Return the official in-memory LangGraph checkpointer."""
-    return MemorySaver()
+def create_checkpointer() -> AsyncSqliteSaver:
+    """Return the async context manager for the SQLite-backed checkpointer.
+
+    The caller must enter the context before passing the saver instance to
+    ``builder.compile(checkpointer=...)``.
+    """
+    db_path = Path(CHECKPOINT_DB_PATH).resolve()
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    return AsyncSqliteSaver.from_conn_string(str(db_path))
 
 
-def get_checkpointer() -> MemorySaver:
-    """Backward-compatible wrapper for existing imports."""
+async def open_checkpointer():
+    """Enter the AsyncSqliteSaver lifecycle and return the saver instance."""
+    checkpointer_cm = create_checkpointer()
+    saver = await checkpointer_cm.__aenter__()
+    return checkpointer_cm, saver
+
+
+async def close_checkpointer(checkpointer_cm):
+    """Exit the AsyncSqliteSaver lifecycle and close SQLite resources."""
+    if checkpointer_cm is not None:
+        await checkpointer_cm.__aexit__(None, None, None)
+
+
+def get_checkpointer():
+    """Backward-compatible wrapper for imports that expect an active saver."""
     return create_checkpointer()
