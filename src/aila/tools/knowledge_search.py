@@ -8,7 +8,7 @@ VECTORSTORE_PATH = "knowledge/vectorstore"
 
 
 @tool
-def knowledge_search(query: str) -> str:
+def knowledge_search(query: str):
     """
     Search AI knowledge documents.
 
@@ -24,7 +24,8 @@ def knowledge_search(query: str) -> str:
             User question.
 
     Returns:
-        Relevant document contents.
+        Relevant document contents and exact source metadata from the
+        underlying LangChain Document objects.
     """
 
     embeddings = create_embeddings()
@@ -36,26 +37,45 @@ def knowledge_search(query: str) -> str:
 
     retriever = vectorstore.as_retriever(
         search_kwargs={
-            "k":3
+            "k": 3
         }
     )
 
     docs = retriever.invoke(query)
 
     if not docs:
-        return "No relevant documents found."
+        return {"context": "No relevant documents found.", "sources": []}
 
-    results=[]
+    context_parts = []
+    source_map = {}
 
     for doc in docs:
-        results.append(
-            f"""
+        metadata = doc.metadata or {}
+        source_value = metadata.get("source")
+
+        if source_value:
+            source_key = str(source_value)
+            if source_key not in source_map:
+                source_entry = {"source": str(source_value)}
+                if metadata.get("page") is not None:
+                    source_entry["page"] = metadata["page"]
+                if metadata.get("title") is not None:
+                    source_entry["title"] = str(metadata["title"])
+                source_map[source_key] = source_entry
+
+            context_parts.append(
+                f"""
 Source:
-{doc.metadata.get('source')}
+{source_value}
 
 Content:
 {doc.page_content}
 """
-        )
+            )
+        else:
+            context_parts.append(doc.page_content)
 
-    return "\n\n".join(results)
+    return {
+        "context": "\n\n".join(context_parts),
+        "sources": list(source_map.values()),
+    }

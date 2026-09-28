@@ -14,6 +14,8 @@ from aila.knowledge.ingestion.cleaner import clean_text
 from aila.knowledge.ingestion.loader import load_documents, load_file
 from aila.knowledge.ingestion.pipeline import build_chunks
 
+from aila.knowledge.vectorstore import create_vectorstore
+
 
 def test_markdown_loads(tmp_path):
     """1. A Markdown file is loaded into a single Document."""
@@ -131,3 +133,64 @@ def test_missing_file_raises_friendly_error(tmp_path):
 
     with pytest.raises(FileNotFoundError, match="not found"):
         load_file(missing)
+
+
+def test_create_vectorstore_clears_old_store_before_rebuild(tmp_path, monkeypatch):
+    """全量重建前必须清理旧的本地 Chroma 数据，避免新旧数据重复。"""
+
+    store_path = tmp_path / "knowledge" / "vectorstore"
+    store_path.mkdir(parents=True)
+    stale_file = store_path / "chroma.sqlite3"
+    stale_file.write_text("stale data", encoding="utf-8")
+
+    # 记录 from_documents 被调用那一刻旧数据的残留情况。
+    calls = {}
+
+    class FakeChroma:
+        @classmethod
+        def from_documents(cls, documents, embedding, persist_directory):
+            target = Path(persist_directory)
+            calls["documents"] = documents
+            calls["embedding"] = embedding
+            calls["persist_directory"] = persist_directory
+            calls["files"] = sorted(p.name for p in target.rglob("*") if p.is_file())
+            return "fake-vectorstore"
+
+    monkeypatch.setattr("aila.knowledge.vectorstore.VECTORSTORE_PATH", store_path)
+    monkeypatch.setattr("aila.knowledge.vectorstore.Chroma", FakeChroma)
+    monkeypatch.setattr("aila.knowledge.vectorstore.create_embeddings", lambda: "fake-embeddings")
+
+    chunks = [Document(page_content="new chunk")]
+
+    result = create_vectorstore(chunks)
+
+    # 旧的 vectorstore 数据在写入前已被清理
+    assert calls["files"] == []
+    assert calls["persist_directory"] == str(store_path)
+    assert calls["documents"] is chunks
+    assert calls["embedding"] == "fake-embeddings"
+    assert result == "fake-vectorstore"
+
+
+def test_create_vectorstore_works_when_store_missing(tmp_path, monkeypatch):
+    """旧目录不存在时，create_vectorstore 应正常创建。"""
+
+    store_path = tmp_path / "knowledge" / "vectorstore"
+
+    calls = {}
+
+    class FakeChroma:
+        @classmethod
+        def from_documents(cls, documents, embedding, persist_directory):
+            calls["persist_directory"] = persist_directory
+            return "fake-vectorstore"
+
+    monkeypatch.setattr("aila.knowledge.vectorstore.VECTORSTORE_PATH", store_path)
+    monkeypatch.setattr("aila.knowledge.vectorstore.Chroma", FakeChroma)
+    monkeypatch.setattr("aila.knowledge.vectorstore.create_embeddings", lambda: "fake-embeddings")
+
+    result = create_vectorstore([Document(page_content="chunk")])
+
+    assert not store_path.exists()
+    assert calls["persist_directory"] == str(store_path)
+    assert result == "fake-vectorstore"
