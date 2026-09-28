@@ -9,8 +9,8 @@ from fastapi.staticfiles import StaticFiles
 from langchain_core.messages import HumanMessage
 
 from ..agent import create_agent
-from ..memory import close_checkpointer, open_checkpointer
-from ..memory.repository import ConversationRepository
+from ..memory import MemoryService, close_checkpointer, open_checkpointer
+from ..memory.repository import ConversationRepository, MemoryRepository
 from .schemas import (
     ChatRequest,
     ChatResponse,
@@ -117,9 +117,26 @@ def _extract_ai_answer(messages):
     return ""
 
 
-def _extract_history_messages(agent, thread_id, user_id):
-    config = {"configurable": {"thread_id": thread_id, "user_id": user_id}}
-    state = agent.get_state(config)
+def _normalize_message_content(content):
+    if content is None:
+        return ""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        pieces = []
+        for part in content:
+            if isinstance(part, dict):
+                if "text" in part and isinstance(part["text"], str):
+                    pieces.append(part["text"])
+            elif part is not None:
+                pieces.append(str(part))
+        return " ".join(pieces).strip()
+    return str(content)
+
+
+async def _extract_history_messages(agent, thread_id, user_id):
+    config = {"configurable": {"thread_id": thread_id}}
+    state = await agent.aget_state(config)
     values = getattr(state, "values", {}) if state is not None else {}
     raw_messages = values.get("messages", []) if isinstance(values, dict) else []
 
@@ -134,13 +151,9 @@ def _extract_history_messages(agent, thread_id, user_id):
 
         role = "user" if (message_type == "human" or (isinstance(message, dict) and message.get("type") == "human")) else "assistant"
         content = getattr(message, "content", "") if not isinstance(message, dict) else message.get("content", "")
-        if isinstance(content, list):
-            text = " ".join(
-                part.get("text", "") if isinstance(part, dict) else str(part)
-                for part in content
-            )
-        else:
-            text = str(content)
+        text = _normalize_message_content(content)
+        if not text:
+            continue
         history.append({"role": role, "content": text, "sources": []})
     return history
 
@@ -150,13 +163,18 @@ def create_app() -> FastAPI:
     async def lifespan(app):
         checkpointer_cm, checkpointer = await open_checkpointer()
         repository = ConversationRepository()
+        memory_repository = MemoryRepository()
         await repository.init_db()
+        await memory_repository.init_db()
         app.state.checkpointer_cm = checkpointer_cm
         app.state.checkpointer = checkpointer
         app.state.repository = repository
+        app.state.memory_repository = memory_repository
+        app.state.memory_service = MemoryService(memory_repository)
         app.state.agent = create_agent(checkpointer=checkpointer)
         yield
         await repository.close()
+        await memory_repository.close()
         await close_checkpointer(checkpointer_cm)
 
     app = FastAPI(title="AI Learning Assistant", lifespan=lifespan)
@@ -197,15 +215,29 @@ def create_app() -> FastAPI:
     @app.get("/api/conversations/{thread_id}/messages")
     async def get_conversation_messages(thread_id: str, user_id: str = Query(...)):
         user_id = _normalize_user_id(user_id)
-        return _extract_history_messages(app.state.agent, thread_id, user_id)
+        conversation = await app.state.repository.get_conversation(thread_id, user_id)
+        if conversation is None:
+            return []
+        return await _extract_history_messages(app.state.agent, thread_id, user_id)
 
     @app.post("/api/chat", response_model=ChatResponse)
     async def chat(request: ChatRequest) -> ChatResponse:
         user_id = _normalize_user_id(request.user_id)
         thread_id = _normalize_thread_id(request.thread_id)
         config = {"configurable": {"thread_id": thread_id, "user_id": user_id}}
+
+        try:
+            memory_context = await app.state.memory_service.build_memory_context(user_id)
+        except Exception:
+            memory_context = ""
+
+        if memory_context:
+            prompt = f"用户长期学习状态:\n{memory_context}\n\n用户当前问题:\n{request.message}"
+        else:
+            prompt = request.message
+
         result = app.state.agent.invoke(
-            {"messages": [HumanMessage(content=request.message)]},
+            {"messages": [HumanMessage(content=prompt)]},
             config=config,
         )
 
@@ -220,12 +252,22 @@ def create_app() -> FastAPI:
         config = {"configurable": {"thread_id": thread_id, "user_id": user_id}}
         seen_sources = set()
 
+        try:
+            memory_context = await app.state.memory_service.build_memory_context(user_id)
+        except Exception:
+            memory_context = ""
+
+        if memory_context:
+            stream_prompt = f"用户长期学习状态:\n{memory_context}\n\n用户当前问题:\n{request.message}"
+        else:
+            stream_prompt = request.message
+
         async def event_generator():
             nonlocal seen_sources
             try:
                 await app.state.repository.update_conversation(user_id, thread_id, request.message)
                 async for message_chunk, _metadata in app.state.agent.astream(
-                    {"messages": [HumanMessage(content=request.message)]},
+                    {"messages": [HumanMessage(content=stream_prompt)]},
                     config=config,
                     stream_mode="messages",
                 ):

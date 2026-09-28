@@ -131,6 +131,33 @@ function renderSources(sourcesBox, sources) {
   sourcesBox.hidden = false;
 }
 
+function normaliseMessageText(value) {
+  if (value == null) {
+    return '';
+  }
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value
+      .map((part) => {
+        if (typeof part === 'string') {
+          return part;
+        }
+        if (part && typeof part === 'object' && typeof part.text === 'string') {
+          return part.text;
+        }
+        return '';
+      })
+      .filter(Boolean)
+      .join('\n');
+  }
+  if (typeof value === 'object' && typeof value.text === 'string') {
+    return value.text;
+  }
+  return String(value);
+}
+
 function appendMessage(role, text) {
   const wrapper = document.createElement('div');
   wrapper.className = `message ${role}`;
@@ -141,7 +168,8 @@ function appendMessage(role, text) {
 
   const bubble = document.createElement('div');
   bubble.className = 'message-bubble';
-  bubble.textContent = text;
+  const normalizedText = normaliseMessageText(text);
+  bubble.textContent = normalizedText;
   if (role === 'ai') {
     bubble.innerHTML = '';
   }
@@ -241,8 +269,11 @@ async function loadConversation(threadId) {
     return;
   }
   const history = await response.json();
-  for (const item of history) {
-    appendMessage(item.role, item.content || '');
+  const items = Array.isArray(history) ? history : (history && Array.isArray(history.messages) ? history.messages : []);
+  for (const item of items) {
+    const role = item && item.role === 'user' ? 'user' : 'assistant';
+    const content = normaliseMessageText(item && item.content);
+    appendMessage(role, content);
   }
 }
 
