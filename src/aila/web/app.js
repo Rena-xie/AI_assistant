@@ -2,20 +2,31 @@ const chatPanel = document.getElementById('chat-panel');
 const form = document.getElementById('chat-form');
 const input = document.getElementById('message-input');
 const sendButton = document.getElementById('send-button');
+const newConversationButton = document.getElementById('new-conversation-btn');
+const conversationList = document.getElementById('conversation-list');
 
-const STORAGE_KEY = 'ai_learning_assistant_thread_id';
+const USER_ID_KEY = 'ai_learning_assistant_user_id';
+const CURRENT_THREAD_KEY = 'ai_learning_assistant_current_thread_id';
 
-function getOrCreateThreadId() {
-  let threadId = localStorage.getItem(STORAGE_KEY);
-  if (!threadId) {
-    threadId = `conversation-${crypto.randomUUID()}`;
-    localStorage.setItem(STORAGE_KEY, threadId);
+function getOrCreateUserId() {
+  let userId = localStorage.getItem(USER_ID_KEY);
+  if (!userId) {
+    userId = crypto.randomUUID();
+    localStorage.setItem(USER_ID_KEY, userId);
   }
-  return threadId;
+  return userId;
+}
+
+function getCurrentThreadId() {
+  return localStorage.getItem(CURRENT_THREAD_KEY) || '';
+}
+
+function setCurrentThreadId(threadId) {
+  localStorage.setItem(CURRENT_THREAD_KEY, threadId);
 }
 
 function escapeHtml(value) {
-  return value
+  return String(value)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -150,6 +161,10 @@ function appendMessage(role, text) {
   return { wrapper, bubble, sourcesBox };
 }
 
+function clearChat() {
+  chatPanel.innerHTML = '';
+}
+
 function setSendingState(isSending) {
   sendButton.disabled = isSending;
   input.disabled = isSending;
@@ -160,13 +175,100 @@ function setSendingState(isSending) {
   }
 }
 
+function renderConversationList(items) {
+  if (!Array.isArray(items)) {
+    items = [];
+  }
+
+  const currentThreadId = getCurrentThreadId();
+  conversationList.innerHTML = items.map((item) => {
+    const title = (item.title || '新对话').slice(0, 30);
+    const isActive = item.thread_id === currentThreadId;
+    return `
+      <button class="conversation-item ${isActive ? 'active' : ''}" data-thread-id="${escapeHtml(item.thread_id)}" type="button">
+        ${escapeHtml(title)}
+      </button>
+    `;
+  }).join('');
+
+  conversationList.querySelectorAll('.conversation-item').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const threadId = button.dataset.threadId;
+      if (!threadId) {
+        return;
+      }
+      setCurrentThreadId(threadId);
+      await loadConversation(threadId);
+      renderConversationList(await fetchConversationList());
+    });
+  });
+}
+
+async function fetchConversationList() {
+  const userId = getOrCreateUserId();
+  const response = await fetch(`/api/conversations?user_id=${encodeURIComponent(userId)}`);
+  if (!response.ok) {
+    return [];
+  }
+  return response.json();
+}
+
+async function loadConversationList() {
+  renderConversationList(await fetchConversationList());
+}
+
+async function createConversation() {
+  const userId = getOrCreateUserId();
+  const response = await fetch('/api/conversations', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_id: userId }),
+  });
+  const body = await response.json();
+  if (!body || !body.thread_id) {
+    return null;
+  }
+  setCurrentThreadId(body.thread_id);
+  await loadConversationList();
+  return body;
+}
+
+async function loadConversation(threadId) {
+  const userId = getOrCreateUserId();
+  clearChat();
+  const response = await fetch(`/api/conversations/${encodeURIComponent(threadId)}/messages?user_id=${encodeURIComponent(userId)}`);
+  if (!response.ok) {
+    return;
+  }
+  const history = await response.json();
+  for (const item of history) {
+    appendMessage(item.role, item.content || '');
+  }
+}
+
+async function ensureCurrentThread() {
+  let currentThreadId = getCurrentThreadId();
+  if (!currentThreadId) {
+    const created = await createConversation();
+    currentThreadId = created ? created.thread_id : '';
+  }
+  if (currentThreadId) {
+    await loadConversation(currentThreadId);
+  }
+}
+
 async function sendMessage() {
   const message = input.value.trim();
   if (!message) {
     return;
   }
 
-  const threadId = getOrCreateThreadId();
+  let threadId = getCurrentThreadId();
+  if (!threadId) {
+    const created = await createConversation();
+    threadId = created ? created.thread_id : getCurrentThreadId();
+  }
+
   appendMessage('user', message);
 
   const aiMessage = {
@@ -190,6 +292,7 @@ async function sendMessage() {
       body: JSON.stringify({
         message,
         thread_id: threadId,
+        user_id: getOrCreateUserId(),
       }),
     });
 
@@ -239,7 +342,7 @@ async function sendMessage() {
           }
 
           if (payload.done === true) {
-            return;
+            break;
           }
 
           if (typeof payload.error === 'string') {
@@ -251,6 +354,8 @@ async function sendMessage() {
         }
       }
     }
+
+    await loadConversationList();
   } catch (error) {
     renderAiBubble(aiBubble, error instanceof Error ? error.message : 'Error');
   } finally {
@@ -274,5 +379,14 @@ input.addEventListener('keydown', (event) => {
   }
 });
 
-getOrCreateThreadId();
-appendMessage('ai', '你好，我是 AI Learning Assistant。你可以直接提问。');
+newConversationButton.addEventListener('click', async () => {
+  const conversation = await createConversation();
+  if (conversation) {
+    clearChat();
+    appendMessage('ai', '你好，我是 AI Learning Assistant。你可以直接提问。');
+  }
+});
+
+getOrCreateUserId();
+loadConversationList();
+ensureCurrentThread();

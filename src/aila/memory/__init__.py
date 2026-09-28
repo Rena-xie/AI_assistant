@@ -1,15 +1,19 @@
-"""Short-term conversation memory.
+"""Conversation persistence helpers for the assistant.
 
-A conversation ("chat window") is identified by a LangGraph ``thread_id``.
-It is not a user id: this is a single-user assistant, so there is no user
-system, no multi-user isolation, and no long-term memory.
+This phase keeps thread state in the LangGraph SQLite checkpointer and stores
+user-to-thread metadata in the app-level SQLite repository. No fake or
+placeholder store is used.
 """
 
-from .checkpoint import DEFAULT_THREAD_ID, create_checkpointer, get_checkpointer
+from .checkpoint import DEFAULT_THREAD_ID, close_checkpointer, create_checkpointer, get_checkpointer, open_checkpointer
+from .repository import ConversationRepository
 
 
 __all__ = [
     "DEFAULT_THREAD_ID",
     "create_checkpointer",
     "get_checkpointer",
+    "open_checkpointer",
+    "close_checkpointer",
+    "ConversationRepository",
 ]

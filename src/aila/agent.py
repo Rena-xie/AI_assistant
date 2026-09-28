@@ -32,7 +32,12 @@ def extract_question(state) -> str:
     return str(last_message)
 
 
-def create_agent():
+def create_agent(checkpointer=None):
+    if checkpointer is None:
+        raise RuntimeError(
+            "A LangGraph checkpointer must be supplied by the app lifespan; "
+            "this project manages AsyncSqliteSaver lifecycle explicitly."
+        )
 
     llm = ChatOpenAI(
         model=MODEL_NAME,
@@ -85,11 +90,6 @@ def create_agent():
     builder.add_edge("rag", END)
     builder.add_edge("agent", END)
 
-    # Short-term memory: the checkpointer stores state per ``thread_id``,
-    # which is what makes multi-turn context work.
-    #
-    # The graph itself is untouched — router / react_agent / tools / RAG
-    # are unchanged, ``compile()`` only gains a checkpointer.
     return builder.compile(
-        checkpointer=create_checkpointer()
+        checkpointer=checkpointer,
     )

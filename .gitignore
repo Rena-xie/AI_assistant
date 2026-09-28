@@ -20,3 +20,5 @@ dist/
 
 # Data / artifacts
 storage/
+data/*.sqlite
+data/*.db

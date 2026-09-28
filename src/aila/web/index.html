@@ -12,22 +12,32 @@
   </head>
   <body>
     <div class="app-shell">
-      <header class="topbar">
-        <h1>AI Learning Assistant</h1>
-      </header>
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <h2>会话</h2>
+          <button id="new-conversation-btn" type="button">新建对话</button>
+        </div>
+        <div id="conversation-list" class="conversation-list"></div>
+      </aside>
 
-      <main class="chat-panel" id="chat-panel" aria-live="polite"></main>
+      <section class="main-panel">
+        <header class="topbar">
+          <h1>AI Learning Assistant</h1>
+        </header>
 
-      <form class="composer" id="chat-form">
-        <input
-          id="message-input"
-          type="text"
-          placeholder="输入问题..."
-          autocomplete="off"
-          aria-label="Message input"
-        />
-        <button id="send-button" type="submit">发送</button>
-      </form>
+        <main class="chat-panel" id="chat-panel" aria-live="polite"></main>
+
+        <form class="composer" id="chat-form">
+          <input
+            id="message-input"
+            type="text"
+            placeholder="输入问题..."
+            autocomplete="off"
+            aria-label="Message input"
+          />
+          <button id="send-button" type="submit">发送</button>
+        </form>
+      </section>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>

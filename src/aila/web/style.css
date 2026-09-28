@@ -9,14 +9,80 @@ body {
   color: #1f2937;
 }
 
+button,
+input {
+  font: inherit;
+}
+
 .app-shell {
-  width: min(900px, 92vw);
-  margin: 32px auto;
+  width: min(1200px, 94vw);
+  margin: 24px auto;
+  min-height: 80vh;
   background: #ffffff;
   border: 1px solid #e5e7eb;
-  border-radius: 12px;
+  border-radius: 16px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
   overflow: hidden;
+  display: flex;
+}
+
+.sidebar {
+  width: 280px;
+  background: #f8fafc;
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 16px 10px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.sidebar-header h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+#new-conversation-btn {
+  border: none;
+  background: #2563eb;
+  color: #ffffff;
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.conversation-list {
+  padding: 10px 8px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.conversation-item {
+  width: 100%;
+  text-align: left;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #111827;
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  margin-bottom: 6px;
+}
+
+.conversation-item.active {
+  background: #dbeafe;
+  border-color: #bfdbfe;
+}
+
+.main-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .topbar {
@@ -31,7 +97,7 @@ body {
 }
 
 .chat-panel {
-  height: 520px;
+  flex: 1;
   overflow-y: auto;
   padding: 20px;
   background: #ffffff;
@@ -219,6 +285,10 @@ body {
     margin: 0;
     border-radius: 0;
     min-height: 100vh;
+  }
+
+  .sidebar {
+    display: none;
   }
 
   .chat-panel {
